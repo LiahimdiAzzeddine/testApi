@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>NFT Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js" integrity="sha512-n8IpKWzDnBOcBhRlHirMZOUvEq2bLRMuJGjuVqbzUJwtTsgwOgK5aS0c1JA647XWYfqvXve8k3PtZdzpipFjgg==" crossorigin="anonymous"></script>
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/r126/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+  </head>
+  <body>
+    <select id="animations"></select>
+
+    <script>
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const loader = new THREE.GLTFLoader();
+      const dracoLoader = new THREE.DRACOLoader();
+      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/');
+      loader.setDRACOLoader(dracoLoader);
+
+      let mixer;
+      let clips;
+
+      loader.load(`/assets/woman.gltf`, gltf => {
+        scene.add(gltf.scene);
+
+        clips = gltf.animations;
+        if (clips && clips.length) {
+          mixer = new THREE.AnimationMixer(gltf.scene);
+          for (let i = 0; i < clips.length; i++) {
+            const action = mixer.clipAction(clips[i]);
+            action.clampWhenFinished = true;
+            action.loop = THREE.LoopOnce;
+          }
+        }
+
+        // Add lights to the scene
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(0, 1, 0);
+        scene.add(directionalLight);
+
+        // Add options to the animations select element
+        const animationsSelect = document.getElementById("animations");
+        for (let i = 0; i < clips.length; i++) {
+          const clip = clips[i];
+          const option = document.createElement("option");
+          option.value = i;
+          option.text = clip.name;
+          animationsSelect.add(option);
+        }
+      });
+
+      camera.position.z = 5;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (mixer) mixer.update(0.01);
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      const animationsSelect = document.getElementById("animations");
+      animationsSelect.addEventListener("change", event => {
+        const clipIndex = event.target.value;
+        const clip = clips[clipIndex];
+        const action = mixer.clipAction(clip);
+        action.play();
+      });
+    </script>
+  </body>
+</html>
